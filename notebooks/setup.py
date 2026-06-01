@@ -1,66 +1,105 @@
 # notebooks/00_setup.py
-# ============================================================
-# NOTEBOOK 00 — Environment Setup
-# ============================================================
-# Purpose : Create databases (schemas), configure Spark, and
-#           prepare the Databricks environment for the pipeline.
-# Run Once: Execute this notebook before any other notebooks.
-# ============================================================
 
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import sys
+import os
 
-from utils.spark_utils import get_spark
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.getcwd(), ".."))
+)
+
 from utils.logger import get_logger
 from config.config import (
-    BRONZE_DB, SILVER_DB, GOLD_DB,
-    BRONZE_PATH, SILVER_PATH, GOLD_PATH,
-    SOURCE_PATH, CHECKPOINT_PATH, LOG_PATH
+    CATALOG_NAME,
+    BRONZE_SCHEMA,
+    SILVER_SCHEMA,
+    GOLD_SCHEMA,
+    VOLUME,
 )
 
 logger = get_logger("00_setup")
 
-# ---------------------------------------------------------------
-# 1. Initialise Spark Session
-# ---------------------------------------------------------------
-spark = get_spark("SalesDW_Setup")
+# ============================================================
+# 1. Create Catalog
+# ============================================================
+logger.info("Creating catalog...")
 
-# ---------------------------------------------------------------
-# 2. Create Layer Databases
-# ---------------------------------------------------------------
-logger.info("Creating Bronze / Silver / Gold databases...")
+spark.sql(f"""
+CREATE CATALOG IF NOT EXISTS `{CATALOG_NAME}`
+""")
 
-spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB} COMMENT 'Raw ingestion layer'")
-spark.sql(f"CREATE DATABASE IF NOT EXISTS {SILVER_DB} COMMENT 'Cleansed and conformed layer'")
-spark.sql(f"CREATE DATABASE IF NOT EXISTS {GOLD_DB}   COMMENT 'Star schema data warehouse'")
+logger.info(f"Catalog ready: {CATALOG_NAME}")
 
-logger.info("Databases created successfully.")
+# ============================================================
+# 2. Create Schemas
+# ============================================================
+logger.info("Creating Bronze, Silver and Gold schemas...")
 
-# ---------------------------------------------------------------
-# 3. Set Default Database Locations (Databricks Unity Catalog
-#    or DBFS paths — comment/uncomment as needed)
-# ---------------------------------------------------------------
-# On Unity Catalog you would instead use:
-#   CREATE SCHEMA IF NOT EXISTS catalog.bronze MANAGED LOCATION '...'
+spark.sql(f"""
+CREATE SCHEMA IF NOT EXISTS `{CATALOG_NAME}`.`{BRONZE_SCHEMA}`
+COMMENT 'Raw ingestion layer'
+""")
 
-logger.info("Configuring Delta Lake settings...")
+spark.sql(f"""
+CREATE SCHEMA IF NOT EXISTS `{CATALOG_NAME}`.`{SILVER_SCHEMA}`
+COMMENT 'Cleansed and conformed layer'
+""")
 
-# Enable automatic schema evolution for Delta
-spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
+spark.sql(f"""
+CREATE SCHEMA IF NOT EXISTS `{CATALOG_NAME}`.`{GOLD_SCHEMA}`
+COMMENT 'Business-ready layer'
+""")
 
-# ---------------------------------------------------------------
-# 4. Verify Setup
-# ---------------------------------------------------------------
-databases = [row.namespace for row in spark.sql("SHOW DATABASES").collect()]
-logger.info(f"Available databases: {databases}")
+logger.info("Schemas created successfully.")
 
-assert BRONZE_DB in databases, f"Database {BRONZE_DB} not found!"
-assert SILVER_DB in databases, f"Database {SILVER_DB} not found!"
-assert GOLD_DB   in databases, f"Database {GOLD_DB} not found!"
+# ============================================================
+# 3. Create Volume
+# ============================================================
+logger.info("Creating volume...")
 
-logger.info("=" * 60)
-logger.info("✅ Setup complete — environment is ready.")
-logger.info(f"   Bronze DB : {BRONZE_DB}")
-logger.info(f"   Silver DB : {SILVER_DB}")
-logger.info(f"   Gold DB   : {GOLD_DB}")
-logger.info("=" * 60)
+spark.sql(f"""
+CREATE VOLUME IF NOT EXISTS
+`{CATALOG_NAME}`.`{BRONZE_SCHEMA}`.`{VOLUME}`
+""")
+
+logger.info("Volume created successfully.")
+
+# ============================================================
+# 4. Create Folders Inside Volume
+# ============================================================
+
+volume_path = (
+    f"/Volumes/{CATALOG_NAME}/{BRONZE_SCHEMA}/{VOLUME}"
+)
+
+dbutils.fs.mkdirs(f"{volume_path}/checkpoints")
+dbutils.fs.mkdirs(f"{volume_path}/logs")
+dbutils.fs.mkdirs(f"{volume_path}/raw")
+
+logger.info("Volume directories created successfully.")
+
+# ============================================================
+# 5. Verify Setup
+# ============================================================
+
+schemas = [
+    row.databaseName
+    for row in spark.sql(
+        f"SHOW SCHEMAS IN `{CATALOG_NAME}`"
+    ).collect()
+]
+
+logger.info(f"Schemas found: {schemas}")
+
+assert BRONZE_SCHEMA in schemas, f"{BRONZE_SCHEMA} not found"
+assert SILVER_SCHEMA in schemas, f"{SILVER_SCHEMA} not found"
+assert GOLD_SCHEMA in schemas, f"{GOLD_SCHEMA} not found"
+
+logger.info("=" * 50)
+logger.info("Environment setup completed successfully")
+logger.info(f"Catalog : {CATALOG_NAME}")
+logger.info(f"Bronze  : {BRONZE_SCHEMA}")
+logger.info(f"Silver  : {SILVER_SCHEMA}")
+logger.info(f"Gold    : {GOLD_SCHEMA}")
+logger.info(f"Volume  : {VOLUME}")
+logger.info("=" * 50)
