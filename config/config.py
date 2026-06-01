@@ -9,8 +9,8 @@ from datetime import datetime
 
 # Environment
 
-ENV = "dev"          # dev | staging | prod
-BATCH_ID = datetime.now().strftime("%Y%m%d%H%M%S")
+ENV = "dev"
+BATCHID=datetime.now().strftime("%Y%m%d%H%M%S")
 
 
 # Databricks / DBFS Paths
@@ -20,45 +20,40 @@ SOURCE_PATH = f"/Volumes/sales_dw/source/source_data"
 BRONZE_PATH = f"{BASE_PATH}/bronze"
 SILVER_PATH = f"{BASE_PATH}/silver"
 GOLD_PATH   = f"{BASE_PATH}/gold"
+VOLUME="bronze_data"
 CHECKPOINT_PATH = f"/Volumes/sales_dw/bronze/bronze_data/checkpoints"
 LOG_PATH    = f"Volumes/sales_dw/bronze/bronze_data/logs"
-
+#Catalogue Name
+CATALOG_NAME = "sales_dw"
 
 # Database / Schema Names
 
-BRONZE_DB = "bronze"
-SILVER_DB = "silver"
-GOLD_DB   = "gold"
-
-
-# Source System Identifiers / or u hav to conncet with postgres
-
-SOURCE_CRM      = "CRM_SYSTEM"
-SOURCE_ERP      = "ERP_SYSTEM"
-SOURCE_ECOMMERCE = "ECOMMERCE_PLATFORM"
+BRONZE_SCHEMA = "bronze"
+SILVER_SCHEMA = "silver"
+GOLD_SCHEMA = "gold"
 
 
 # Bronze Table Names
 
-BRONZE_CUSTOMERS = f"{BRONZE_DB}.crm_customers"
-BRONZE_PRODUCTS  = f"{BRONZE_DB}.erp_products"
-BRONZE_ORDERS    = f"{BRONZE_DB}.ecom_orders"
+BRONZE_CUSTOMERS = f"{BRONZE_SCHEMA}.crm_customers"
+BRONZE_PRODUCTS  = f"{BRONZE_SCHEMA}.erp_products"
+BRONZE_ORDERS    = f"{BRONZE_SCHEMA}.ecom_orders"
 
 
 # Silver Table Names
 
-SILVER_CUSTOMERS = f"{SILVER_DB}.customers"
-SILVER_PRODUCTS  = f"{SILVER_DB}.products"
-SILVER_ORDERS    = f"{SILVER_DB}.orders"
+SILVER_CUSTOMERS = f"{SILVER_SCHEMA}.customers"
+SILVER_PRODUCTS  = f"{SILVER_SCHEMA}.products"
+SILVER_ORDERS    = f"{SILVER_SCHEMA}.orders"
 
 
 # Gold Table Names
 
-DIM_CUSTOMER    = f"{GOLD_DB}.dim_customer"
-DIM_PRODUCT     = f"{GOLD_DB}.dim_product"
-DIM_DATE        = f"{GOLD_DB}.dim_date"
-DIM_GEOGRAPHY   = f"{GOLD_DB}.dim_geography"
-FACT_SALES      = f"{GOLD_DB}.fact_sales"
+DIM_CUSTOMER    = f"{GOLD_SCHEMA}.dim_customer"
+DIM_PRODUCT     = f"{GOLD_SCHEMA}.dim_product"
+DIM_DATE        = f"{GOLD_SCHEMA}.dim_date"
+DIM_GEOGRAPHY   = f"{GOLD_SCHEMA}.dim_geography"
+FACT_SALES      = f"{GOLD_SCHEMA}.fact_sales"
 
 
 # Date Dimension Config
