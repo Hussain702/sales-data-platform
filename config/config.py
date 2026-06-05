@@ -10,7 +10,7 @@ from datetime import datetime
 # Environment
 
 ENV = "dev"
-BATCHID=datetime.now().strftime("%Y%m%d%H%M%S")
+BATCH_ID=datetime.now().strftime("%Y%m%d%H%M%S")
 
 # ADLS GEN2 ACCESS
 storage_account = "salessource"
@@ -38,9 +38,9 @@ GOLD_SCHEMA = "gold"
 
 # Bronze Table Names
 
-BRONZE_CUSTOMERS = f"{BRONZE_SCHEMA}.crm_customers"
-BRONZE_PRODUCTS  = f"{BRONZE_SCHEMA}.erp_products"
-BRONZE_ORDERS    = f"{BRONZE_SCHEMA}.ecom_orders"
+BRONZE_CUSTOMERS = f"{BRONZE_SCHEMA}.bronze_customers"
+BRONZE_PRODUCTS  = f"{BRONZE_SCHEMA}.bronze_products"
+BRONZE_ORDERS    = f"{BRONZE_SCHEMA}.bronze_orders"
 
 
 # Silver Table Names
