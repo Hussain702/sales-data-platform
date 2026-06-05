@@ -37,3 +37,4 @@ def get_logger(name: str):
     logger.addHandler(handler)
 
     return logger
+

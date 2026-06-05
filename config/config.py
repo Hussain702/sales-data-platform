@@ -10,12 +10,15 @@ from datetime import datetime
 # Environment
 
 ENV = "dev"
-BATCHID=datetime.now().strftime("%Y%m%d%H%M%S")
+BATCH_ID=datetime.now().strftime("%Y%m%d%H%M%S")
 
+# ADLS GEN2 ACCESS
+storage_account = "salessource"
 
+container = "sales-source"
 # Databricks / DBFS Paths
 
-BASE_PATH = "sales_dw"                        
+BASE_PATH = "salesdw"                        
 SOURCE_PATH = f"/Volumes/sales_dw/source/source_data"
 BRONZE_PATH = f"{BASE_PATH}/bronze"
 SILVER_PATH = f"{BASE_PATH}/silver"
@@ -24,7 +27,7 @@ VOLUME="bronze_data"
 CHECKPOINT_PATH = f"/Volumes/sales_dw/bronze/bronze_data/checkpoints"
 LOG_PATH    = f"Volumes/sales_dw/bronze/bronze_data/logs"
 #Catalogue Name
-CATALOG_NAME = "sales_dw"
+CATALOG_NAME = "salesdw"
 
 # Database / Schema Names
 
@@ -35,9 +38,9 @@ GOLD_SCHEMA = "gold"
 
 # Bronze Table Names
 
-BRONZE_CUSTOMERS = f"{BRONZE_SCHEMA}.crm_customers"
-BRONZE_PRODUCTS  = f"{BRONZE_SCHEMA}.erp_products"
-BRONZE_ORDERS    = f"{BRONZE_SCHEMA}.ecom_orders"
+BRONZE_CUSTOMERS = f"{BRONZE_SCHEMA}.bronze_customers"
+BRONZE_PRODUCTS  = f"{BRONZE_SCHEMA}.bronze_products"
+BRONZE_ORDERS    = f"{BRONZE_SCHEMA}.bronze_orders"
 
 
 # Silver Table Names
