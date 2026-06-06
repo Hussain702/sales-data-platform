@@ -2,6 +2,7 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import *
 from pyspark.sql import *
 from config.config import BATCH_ID
+from utils.logger import get_logger
 import sys ,os
 
 sys.path.insert(
@@ -18,3 +19,50 @@ def add_audit_columns(df: DataFrame, source_system: str,
         .withColumn("source_system",lit(source_system))
         .withColumn("batch_id",lit(batch_id))
     )
+def add_silver_audit_columns(df: DataFrame) -> DataFrame:
+   
+    
+    return (
+        df
+        .withColumn("created_at",current_timestamp())
+        .withColumn("updated_at",current_timestamp())
+        
+        
+    )
+
+def write_delta_overwrite(df:DataFrame, path:str,partition_by: list=None)->None:
+    
+      
+    logger.info(f"Writing (overwrite) → {path}")
+
+    writer = (
+        df.write
+        .format("delta")
+        .mode("overwrite")
+        .option("overwriteSchema", "true")
+    )
+
+    if partition_by:
+        writer = writer.partitionBy(*partition_by)
+
+    writer.save(path)
+
+    logger.info(f"Write complete → {path} | rows: {df.count()}")
+    
+def write_delta_append(df:DataFrame, path:str,partition_by:list=None)->None:
+    logger.info(f"Writing (overwrite) → {path}")
+
+    writer = (
+        df.write
+        .format("delta")
+        .mode("overwrite")
+        .option("overwriteSchema", "true")
+    )
+
+    if partition_by:
+        writer = writer.partitionBy(*partition_by)
+
+    writer.save(path)
+
+    logger.info(f"Write complete → {path} | rows: {df.count()}")
+   
