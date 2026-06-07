@@ -65,4 +65,20 @@ def write_delta_append(df:DataFrame, path:str,partition_by:list=None)->None:
     writer.save(path)
 
     logger.info(f"Write complete → {path} | rows: {df.count()}")
+
+
+# ================================================================
+# SILVER — TRANSFORMATIONS
+# ================================================================
+## deduplication of records
+
+def dedup(df:DataFrame,col_list:list,reg_date:str)-> DataFrame:
+    df = df.withColumn("dedup_key",concat(*col_list))
+    df = df.withColumn("dedup_counts",row_number().over(Window.partitionBy    ("dedup_key").orderBy(col(reg_date).desc())))
+    df = df.filter(col("dedup_counts")==1)
+    df = df.drop("dedup_key","dedup_counts")
+    return df
+## droping null columns    
+def drop_nulls(df: DataFrame, col_list: list) -> DataFrame:
+    return df.dropna(subset=col_list)
    
