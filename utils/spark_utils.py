@@ -81,4 +81,7 @@ def dedup(df:DataFrame,col_list:list,reg_date:str)-> DataFrame:
 ## droping null columns    
 def drop_nulls(df: DataFrame, col_list: list) -> DataFrame:
     return df.dropna(subset=col_list)
+
+
+    
    
