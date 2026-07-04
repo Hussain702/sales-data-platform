@@ -18,7 +18,7 @@ storage_account = "salessource"
 container = "sales-source"
 # Databricks / DBFS Paths
 
-BASE_PATH = "salesdw"                        
+BASE_PATH = "salesdw"                    
 SOURCE_PATH = f"/Volumes/sales_dw/source/source_data"
 BRONZE_PATH = f"{BASE_PATH}/bronze"
 SILVER_PATH = f"{BASE_PATH}/silver"
