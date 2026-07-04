@@ -4,7 +4,7 @@ from pyspark.sql import *
 from config.config import BATCH_ID
 from utils.logger import get_logger
 import sys ,os
-
+logger=get_logger('spark utilities')
 sys.path.insert(
     0,
     os.path.abspath(os.path.join(os.getcwd(), ".."))

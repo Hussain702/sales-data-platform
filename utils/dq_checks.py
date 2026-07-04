@@ -1,12 +1,12 @@
 from pyspark.sql.functions import * 
-from typing import Dict, Any
+from typing import Dict, Any,List
 from utils.logger import get_logger
 
 
 class DQchecks:
     def __init__(self,tbl_name:str):
         self.tbl_name=tbl_name
-        self.checks=list[Dict[str,Any]]=[]
+        self.checks=[]
         self.passed=true
 
     def add(self,check_name:str,passed:bool,details:str =""):
@@ -45,6 +45,18 @@ def check_nulls(df:DataFrame, cols:list,dq:DQchecks)->DQchecks:
         passed=null_rate<threshold
         dq.add(f"null_check_{col}",passed,f"null_rate={null_rate}, threshold={threshold}")
     return dq
+
+def check_duplicates(df:DataFrame, cols:list,dq:DQchecks)->DQchecks:
+    total = df.count()
+    if total == 0:
+        result.add("duplicate_check", False, "No rows to check")
+        return dq
+    for col in cols:
+        dup_count=df.groupBy(col).count().filter(col("count")>1).count()
+        dup_rate=dup_count/total
+        passed=dup_rate==0
+        dq.add(f"duplicate_check_{col}",passed,f"duplicate_rate={dup_rate}")
+    return dq        
 
 
     
