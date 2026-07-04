@@ -19,20 +19,20 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from pyspark.sql import functions as F
 
-from utils.spark_utils import get_spark, read_delta
+ 
 from utils.dq_utils import (
-    DQResult, check_row_count, check_nulls, check_duplicates,
+    DQchecks, check_row_count, check_nulls, check_duplicates,
     check_referential_integrity, check_value_range
 )
 from utils.logger import get_logger
 from config.config import (
     BRONZE_CUSTOMERS, BRONZE_PRODUCTS, BRONZE_ORDERS,
     SILVER_CUSTOMERS, SILVER_PRODUCTS, SILVER_ORDERS,
-    DIM_CUSTOMER, DIM_PRODUCT, DIM_DATE, DIM_GEOGRAPHY, FACT_SALES
+    DIM_CUSTOMER, DIM_PRODUCT, DIM_DATE,FACT_SALES
 )
 
 logger = get_logger("05_data_quality")
-spark  = get_spark("SalesDW_DataQuality")
+
 
 
 # ================================================================
@@ -67,21 +67,21 @@ def report_row_counts():
 # DQ CHECKS — Silver Layer
 # ================================================================
 def dq_silver_customers():
-    df = read_delta(spark, SILVER_CUSTOMERS)
-    result = DQResult(SILVER_CUSTOMERS)
+    df = read_delta(SILVER_CUSTOMERS)
+    result = DQchecks(SILVER_CUSTOMERS)
     check_row_count(df, result, min_count=1)
-    check_nulls(df, result, columns=["customer_id", "email", "full_name", "country"])
-    check_duplicates(df, result, key_columns=["customer_id"])
+    check_nulls(df, columns=["customer_id", "email", "full_name", "country"],result)
+    check_duplicates(df, key_columns=["customer_id"],result)
     print(result.summary())
     return result
 
 
 def dq_silver_products():
-    df = read_delta(spark, SILVER_PRODUCTS)
-    result = DQResult(SILVER_PRODUCTS)
+    df = read_delta(SILVER_PRODUCTS)
+    result = DQchecks(SILVER_PRODUCTS)
     check_row_count(df, result, min_count=1)
-    check_nulls(df, result, columns=["product_id", "product_name", "unit_price"])
-    check_duplicates(df, result, key_columns=["product_id"])
+    check_nulls(df, columns=["product_id", "product_name", "unit_price"],result)
+    check_duplicates(df, key_columns=["product_id"],result)
     check_value_range(df, result, "unit_price", min_val=0)
     check_value_range(df, result, "unit_cost",  min_val=0)
     print(result.summary())
@@ -90,10 +90,10 @@ def dq_silver_products():
 
 def dq_silver_orders():
     df = read_delta(spark, SILVER_ORDERS)
-    result = DQResult(SILVER_ORDERS)
+    result = DQchecks(SILVER_ORDERS)
     check_row_count(df, result, min_count=1)
-    check_nulls(df, result, columns=["order_id", "order_line_id", "customer_id", "product_id"])
-    check_duplicates(df, result, key_columns=["order_line_id"])
+    check_nulls(df, columns=["order_id", "order_line_id", "customer_id", "product_id"],result)
+    check_duplicates(df, key_columns=["order_line_id"],result)
     check_value_range(df, result, "quantity",    min_val=1)
     check_value_range(df, result, "unit_price",  min_val=0)
     check_value_range(df, result, "net_revenue", min_val=0)
@@ -108,12 +108,12 @@ def dq_gold_dimensions():
     for tbl, key in [
         (DIM_CUSTOMER,  "customer_bk"),
         (DIM_PRODUCT,   "product_bk"),
-        (DIM_GEOGRAPHY, "geography_bk"),
+        
     ]:
-        df = read_delta(spark, tbl)
-        result = DQResult(tbl)
+        df = read_delta(tbl)
+        result = DQchecks(tbl)
         check_row_count(df, result, min_count=1)
-        check_duplicates(df, result, key_columns=[key])
+        check_duplicates(df,key_columns=[key],result)
         print(result.summary())
 
 
@@ -135,11 +135,11 @@ def dq_fact_referential_integrity():
 
 
 def dq_fact_metrics():
-    df = read_delta(spark, FACT_SALES)
-    result = DQResult(FACT_SALES)
+    df = read_delta( FACT_SALES)
+    result = DQchecks(FACT_SALES)
     check_row_count(df, result, min_count=1)
-    check_nulls(df, result, columns=["order_line_id", "customer_sk", "product_sk"])
-    check_duplicates(df, result, key_columns=["order_line_id"])
+    check_nulls(df,columns=["order_line_id", "customer_sk", "product_sk"],result)
+    check_duplicates(df, key_columns=["order_line_id"],result)
     check_value_range(df, result, "quantity",     min_val=1)
     check_value_range(df, result, "net_revenue",  min_val=0)
     check_value_range(df, result, "gross_profit", min_val=None)  # can be negative
@@ -154,7 +154,7 @@ def analytical_reports():
     logger.info("ANALYTICAL SUMMARY REPORTS")
     logger.info("=" * 60)
 
-    fact = read_delta(spark, FACT_SALES)
+    fact = read_delta( FACT_SALES)
     dim_customer = read_delta(spark, DIM_CUSTOMER)
     dim_product  = read_delta(spark, DIM_PRODUCT)
     dim_date     = read_delta(spark, DIM_DATE)
@@ -166,13 +166,13 @@ def analytical_reports():
         .join(dim_product, "product_sk", "left")
         .groupBy("category")
         .agg(
-            F.count("order_line_id").alias("order_lines"),
-            F.sum("quantity").alias("total_units"),
-            F.round(F.sum("net_revenue"), 2).alias("total_revenue"),
-            F.round(F.sum("gross_profit"), 2).alias("total_profit"),
-            F.round(F.avg("gross_profit_pct"), 2).alias("avg_margin_pct")
+            count("order_line_id").alias("order_lines"),
+            sum("quantity").alias("total_units"),
+            round(sum("net_revenue"), 2).alias("total_revenue"),
+            round(sum("gross_profit"), 2).alias("total_profit"),
+            round(avg("gross_profit_pct"), 2).alias("avg_margin_pct")
         )
-        .orderBy(F.desc("total_revenue"))
+        .orderBy(desc("total_revenue"))
         .show(truncate=False)
     )
 
@@ -183,9 +183,9 @@ def analytical_reports():
         .join(dim_customer, "customer_sk", "left")
         .groupBy("customer_segment")
         .agg(
-            F.countDistinct("order_id").alias("orders"),
-            F.round(F.sum("net_revenue"), 2).alias("total_revenue"),
-            F.round(F.avg("net_revenue"), 2).alias("avg_order_value")
+            countDistinct("order_id").alias("orders"),
+            round(F.sum("net_revenue"), 2).alias("total_revenue"),
+            round(F.avg("net_revenue"), 2).alias("avg_order_value")
         )
         .orderBy(F.desc("total_revenue"))
         .show(truncate=False)
@@ -199,9 +199,9 @@ def analytical_reports():
               fact["order_date_sk"] == dim_date["date_key"], "left")
         .groupBy("year_month")
         .agg(
-            F.count("order_line_id").alias("transactions"),
-            F.round(F.sum("net_revenue"), 2).alias("monthly_revenue"),
-            F.round(F.sum("gross_profit"), 2).alias("monthly_profit")
+            count("order_line_id").alias("transactions"),
+            round(sum("net_revenue"), 2).alias("monthly_revenue"),
+            round(sum("gross_profit"), 2).alias("monthly_profit")
         )
         .orderBy("year_month")
         .show(20, truncate=False)
@@ -214,11 +214,11 @@ def analytical_reports():
         .join(dim_product, "product_sk", "left")
         .groupBy("product_name", "category")
         .agg(
-            F.sum("quantity").alias("units_sold"),
-            F.round(F.sum("net_revenue"), 2).alias("total_revenue"),
-            F.round(F.avg("gross_profit_pct"), 2).alias("avg_margin_pct")
+            sum("quantity").alias("units_sold"),
+            round(sum("net_revenue"), 2).alias("total_revenue"),
+            round(avg("gross_profit_pct"), 2).alias("avg_margin_pct")
         )
-        .orderBy(F.desc("total_revenue"))
+        .orderBy(desc("total_revenue"))
         .limit(5)
         .show(truncate=False)
     )
