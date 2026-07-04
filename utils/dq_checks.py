@@ -116,6 +116,57 @@ def check_duplicates(df: DataFrame, cols: list, dq: DQchecks) -> DQchecks:
 
     return dq
 
+def check_referential_integrity( dq: DQResult,
+                                fact_table: str, dim_table: str,
+                                fact_key: str, dim_key: str) -> DQResult:
+    """Every FK in fact_table must exist in dim_table."""
+    fact_df = spark.read.format("delta").table(fact_table)
+    dim_df  = spark.read.format("delta").table(dim_table)
+
+    orphans = (
+        fact_df.select(fact_key)
+               .distinct()
+               .join(dim_df.select(dim_key), fact_df[fact_key] == dim_df[dim_key], "left_anti")
+               .count()
+    )
+    passed = orphans == 0
+    dq.add(
+        f"ref_integrity_{fact_table}_{fact_key}→{dim_table}_{dim_key}",
+        passed,
+        f"orphan_keys={orphans}"
+    )
+    return result
+
+
+def check_value_range(df: DataFrame, dq: DQchecks,
+                      column: str, min_val=None, max_val=None) -> DQchecks:
+    """Values in column must fall within [min_val, max_val]."""
+    condition = F.lit(True)
+    if min_val is not None:
+        condition = condition & (col(column) >= min_val)
+    if max_val is not None:
+        condition = condition & (col(column) <= max_val)
+    out_of_range = df.filter(~condition).count()
+    passed = out_of_range == 0
+    dq.add(
+        f"range_check_{column}", passed,
+        f"out_of_range={out_of_range}, min={min_val}, max={max_val}"
+    )
+    return dq
+
+
+def check_regex_pattern(df: DataFrame, dq: DQchecks,
+                        column: str, pattern: str) -> DQchecks:
+    """Values in column must match the given regex pattern."""
+    invalid = df.filter(~F.col(column).rlike(pattern)).count()
+    passed  = invalid == 0
+    dq.add(
+        f"regex_check_{column}", passed,
+        f"invalid_count={invalid}, pattern={pattern}"
+    )
+    return dq
+
+
 
 def standard_checks(
     df: DataFrame,
